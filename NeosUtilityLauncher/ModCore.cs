@@ -43,18 +43,25 @@ namespace JanoschR.NeosUtilityLauncher {
             }
         }
 
-        protected static List<Tuple<ConfigEntry, Process>> processes = new List<Tuple<ConfigEntry, Process>>();
-        protected static Dictionary<string, int> restarts = new Dictionary<string, int>();
+        protected List<Tuple<ConfigEntry, Process>> processes = new List<Tuple<ConfigEntry, Process>>();
+        protected Dictionary<string, int> restarts = new Dictionary<string, int>();
+        protected bool shuttingDown = false;
 
         protected void HandleApplicationConfig (ConfigEntry entry) {
+            if (entry == null) return;
             if (!entry.enabled) return;
+
+            if (entry.command == null) return;
+            if (entry.name == null) {
+                entry.name = $"\"{Path.GetFileName(entry.command)}\"";
+            }
 
             Msg($"Starting {entry.name}...");
 
             Process process = new Process();
             process.StartInfo = new ProcessStartInfo() {
                 FileName = entry.command,
-                Arguments = string.Join(" ", entry.arguments),
+                Arguments = string.Join(" ", entry.arguments ?? new string[0]),
                 ErrorDialog = false,
                 UseShellExecute = true
             };
@@ -71,6 +78,8 @@ namespace JanoschR.NeosUtilityLauncher {
         }
 
         protected void HandleApplicationExited (ConfigEntry entry, Process process) {
+            if (shuttingDown) return;
+
             Warn($"Process {process.Id} ({entry.name}) has exited! " +
                 (entry.autoRestart ? $"({restarts.Get(entry.id, 1)}/{entry.maxRestarts})" : ""));
 
@@ -86,7 +95,8 @@ namespace JanoschR.NeosUtilityLauncher {
         }
 
         protected void OnEngineShutdown() {
-            
+            shuttingDown = true;
+
             foreach (Tuple<ConfigEntry, Process> tuple in processes) {
                 var config = tuple.Item1;
                 var process = tuple.Item2;
