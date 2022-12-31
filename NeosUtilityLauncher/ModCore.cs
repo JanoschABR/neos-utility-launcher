@@ -47,6 +47,8 @@ namespace JanoschR.NeosUtilityLauncher {
         protected static Dictionary<string, int> restarts = new Dictionary<string, int>();
 
         protected void HandleApplicationConfig (ConfigEntry entry) {
+            if (!entry.enabled) return;
+
             Msg($"Starting {entry.name}...");
 
             Process process = new Process();
